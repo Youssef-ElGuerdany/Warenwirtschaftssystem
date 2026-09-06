@@ -1,0 +1,110 @@
+# ==========================================
+# Delphi / RAD Studio
+# ==========================================
+
+# Compiled Delphi units
+.dcu
+*.dcu32
+*.dcu64
+*.dcuil
+*.dcp
+*.dcpil
+
+# Compiled packages and libraries
+*.bpl
+*.bpi
+*.lib
+*.obj
+*.hpp
+
+# Executables and debug artifacts
+*.exe
+*.dll
+*.map
+*.tds
+*.rsm
+
+# Delphi temporary files
+*.~*
+*.tmp
+*.bak
+*.dsk
+*.identcache
+*.local
+*.stat
+*.tvsconfig
+
+# ==========================================
+# Build output
+# ==========================================
+
+/Win32/
+/Win64/
+/Debug/
+/Release/
+/build/
+/dist/
+/bin/
+Win32/Debug/
+
+# ==========================================
+# RAD Studio local configuration
+# ==========================================
+
+*.dproj.local
+*.groupproj.local
+*.proj.local
+
+# ==========================================
+# Logs and temporary files
+# ==========================================
+
+*.log
+*.swp
+*.swo
+*.orig
+
+# ==========================================
+# Operating system
+# ==========================================
+
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ==========================================
+# Environment and secrets
+# ==========================================
+
+.env
+.env.*
+!.env.example
+
+# ==========================================
+# Local databases
+# ==========================================
+
+*.db
+*.sqlite
+*.sqlite3
+
+# ==========================================
+# Project-specific local configuration
+# ==========================================
+
+config.local.json
+settings.local.json
+
+# ==========================================
+# Keep source code and project files tracked
+# ==========================================
+
+# Do not ignore:
+# *.pas
+# *.dfm
+# *.dpr
+# *.dproj
+# *.groupproj
+# *.inc
+# *.res
+# libs/mORMot2/src/

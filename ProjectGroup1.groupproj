@@ -1,0 +1,60 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{DF2CADEE-39DF-4FF9-8201-BABE544267E9}</ProjectGuid>
+    </PropertyGroup>
+    <ItemGroup>
+        <Projects Include="Warenfluss.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="WarenflussServer.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="test\Warenfluss.Tests.dproj">
+            <Dependencies/>
+        </Projects>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+    <Target Name="Warenfluss">
+        <MSBuild Projects="Warenfluss.dproj"/>
+    </Target>
+    <Target Name="Warenfluss:Clean">
+        <MSBuild Projects="Warenfluss.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="Warenfluss:Make">
+        <MSBuild Projects="Warenfluss.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="WarenflussServer">
+        <MSBuild Projects="WarenflussServer.dproj"/>
+    </Target>
+    <Target Name="WarenflussServer:Clean">
+        <MSBuild Projects="WarenflussServer.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="WarenflussServer:Make">
+        <MSBuild Projects="WarenflussServer.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Warenfluss_Tests">
+        <MSBuild Projects="test\Warenfluss.Tests.dproj"/>
+    </Target>
+    <Target Name="Warenfluss_Tests:Clean">
+        <MSBuild Projects="test\Warenfluss.Tests.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="Warenfluss_Tests:Make">
+        <MSBuild Projects="test\Warenfluss.Tests.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Build">
+        <CallTarget Targets="Warenfluss;WarenflussServer;Warenfluss_Tests"/>
+    </Target>
+    <Target Name="Clean">
+        <CallTarget Targets="Warenfluss:Clean;WarenflussServer:Clean;Warenfluss_Tests:Clean"/>
+    </Target>
+    <Target Name="Make">
+        <CallTarget Targets="Warenfluss:Make;WarenflussServer:Make;Warenfluss_Tests:Make"/>
+    </Target>
+    <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+</Project>
