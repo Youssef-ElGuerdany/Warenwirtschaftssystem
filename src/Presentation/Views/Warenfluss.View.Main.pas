@@ -13,7 +13,9 @@ uses
   Warenfluss.Localization,
   Warenfluss.DTOs.Auth,
   Warenfluss.Interfaces.Services,
-  Warenfluss.ViewModel.Main;
+  Warenfluss.ViewModel.Main,
+  Warenfluss.ViewModel.Product,
+  Warenfluss.View.Products;
 
 type
   TfrmMain = class(TForm)
@@ -55,11 +57,15 @@ type
     procedure btnNavAuditClick(Sender: TObject);
     procedure btnLanguageToggleClick(Sender: TObject);
   private
-    FViewModel: TMainViewModel;
+    FViewModel:   TMainViewModel;
+    FProductVM:   TProductViewModel;
+    FProductSvc:  IProductService;
+    FCategorySvc: ICategoryService;
     procedure UpdateLocalization;
     procedure OnViewModelChanged;
   public
-    constructor CreateWithViewModel(AOwner: TComponent; AViewModel: TMainViewModel); reintroduce;
+    constructor CreateWithViewModel(AOwner: TComponent; AViewModel: TMainViewModel;
+      AProductSvc: IProductService; ACategorySvc: ICategoryService); reintroduce;
   end;
 
 var
@@ -69,14 +75,15 @@ implementation
 
 {$R *.dfm}
 
-constructor TfrmMain.CreateWithViewModel(AOwner: TComponent; AViewModel: TMainViewModel);
+constructor TfrmMain.CreateWithViewModel(AOwner: TComponent; AViewModel: TMainViewModel;
+  AProductSvc: IProductService; ACategorySvc: ICategoryService);
 begin
   inherited Create(AOwner);
-  FViewModel := AViewModel;
+  FViewModel    := AViewModel;
+  FProductSvc   := AProductSvc;
+  FCategorySvc  := ACategorySvc;
   if Assigned(FViewModel) then
-  begin
     FViewModel.OnChanged := OnViewModelChanged;
-  end;
 end;
 
 procedure TfrmMain.FormCreate(Sender: TObject);
@@ -131,8 +138,19 @@ begin
 end;
 
 procedure TfrmMain.btnNavProductsClick(Sender: TObject);
+var
+  ProductsDlg: TfrmProducts;
 begin
-  // In the desktop UI, product master catalog view is invoked cleanly through ViewModel
+  { Build ViewModel lazily (once), reuse across navigations }
+  if not Assigned(FProductVM) then
+    FProductVM := TProductViewModel.Create(FProductSvc, FCategorySvc);
+
+  ProductsDlg := TfrmProducts.CreateWithViewModel(Self, FProductVM);
+  try
+    ProductsDlg.ShowModal;
+  finally
+    ProductsDlg.Free;
+  end;
 end;
 
 procedure TfrmMain.btnNavInventoryClick(Sender: TObject);
