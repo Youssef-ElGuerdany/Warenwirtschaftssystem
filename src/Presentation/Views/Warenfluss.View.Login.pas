@@ -79,7 +79,16 @@ begin
   Req.Password := Trim(edtPassword.Text);
   Req.ClientIP := '127.0.0.1';
 
-  ModalResult := mrOk;
+  FAuthenticatedUser := FAuthService.Login(Req);
+  if FAuthenticatedUser.Success then
+  begin
+    ModalResult := mrOk;
+  end
+  else
+  begin
+    lblError.Caption := FAuthenticatedUser.ErrorMessage;
+    lblError.Font.Color := clRed;
+  end;
 end;
 
 procedure TfrmLogin.btnCancelClick(Sender: TObject);
