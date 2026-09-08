@@ -45,9 +45,11 @@ uses
   Warenfluss.Services.Report in '..\src\Application\Services\Warenfluss.Services.Report.pas',
   Warenfluss.Services.Audit in '..\src\Application\Services\Warenfluss.Services.Audit.pas',
   Warenfluss.Repositories.Mock in '..\src\Infrastructure\Repositories\Warenfluss.Repositories.Mock.pas',
-  Warenfluss.TestRunner in 'Warenfluss.TestRunner.pas',
+  Warenfluss.ViewModel.Base in '..\src\Presentation\ViewModels\Warenfluss.ViewModel.Base.pas',
+  Warenfluss.ViewModel.Inventory in '..\src\Presentation\ViewModels\Warenfluss.ViewModel.Inventory.pas',
   Test.AuthenticationService in 'Test.AuthenticationService.pas',
   Test.InventoryService in 'Test.InventoryService.pas',
+  Test.InventoryViewModel in 'Test.InventoryViewModel.pas',
   Test.StockTransferService in 'Test.StockTransferService.pas',
   Test.SalesOrderService in 'Test.SalesOrderService.pas';
 
@@ -55,6 +57,7 @@ procedure RunSuite;
 var
   AuthTests: TTestAuthenticationService;
   InvTests: TTestInventoryService;
+  InvVMTests: TTestInventoryViewModel;
   XferTests: TTestStockTransferService;
   SalesTests: TTestSalesOrderService;
   Passed: Integer;
@@ -106,11 +109,35 @@ begin
   try
     InvTests.SetUp;
     RunTest('TestPositiveAdjustment', procedure begin InvTests.TestPositiveAdjustment; end);
+    InvTests.SetUp;
     RunTest('TestNegativeAdjustment', procedure begin InvTests.TestNegativeAdjustment; end);
+    InvTests.SetUp;
     RunTest('TestPreventNegativeStock', procedure begin InvTests.TestPreventNegativeStock; end);
+    InvTests.SetUp;
     RunTest('TestStockMovementRecorded', procedure begin InvTests.TestStockMovementRecorded; end);
   finally
     InvTests.Free;
+  end;
+  Writeln('');
+
+  // 3. Inventory ViewModel Tests
+  Writeln('[FIXTURE] TTestInventoryViewModel');
+  InvVMTests := TTestInventoryViewModel.Create;
+  try
+    InvVMTests.SetUp;
+    RunTest('TestLoadStockPopulatesItems', procedure begin InvVMTests.TestLoadStockPopulatesItems; end);
+    InvVMTests.SetUp;
+    RunTest('TestSearchFiltering', procedure begin InvVMTests.TestSearchFiltering; end);
+    InvVMTests.SetUp;
+    RunTest('TestWarehouseFiltering', procedure begin InvVMTests.TestWarehouseFiltering; end);
+    InvVMTests.SetUp;
+    RunTest('TestCalculations', procedure begin InvVMTests.TestCalculations; end);
+    InvVMTests.SetUp;
+    RunTest('TestAdjustStockThroughViewModel', procedure begin InvVMTests.TestAdjustStockThroughViewModel; end);
+    InvVMTests.SetUp;
+    RunTest('TestTransferStockThroughViewModel', procedure begin InvVMTests.TestTransferStockThroughViewModel; end);
+  finally
+    InvVMTests.Free;
   end;
   Writeln('');
 
@@ -120,7 +147,9 @@ begin
   try
     XferTests.SetUp;
     RunTest('TestSuccessfulTransfer', procedure begin XferTests.TestSuccessfulTransfer; end);
+    XferTests.SetUp;
     RunTest('TestTransferInsufficientStock', procedure begin XferTests.TestTransferInsufficientStock; end);
+    XferTests.SetUp;
     RunTest('TestTransferSameWarehouseFails', procedure begin XferTests.TestTransferSameWarehouseFails; end);
   finally
     XferTests.Free;
@@ -133,7 +162,9 @@ begin
   try
     SalesTests.SetUp;
     RunTest('TestCreateSalesOrderCalculations', procedure begin SalesTests.TestCreateSalesOrderCalculations; end);
+    SalesTests.SetUp;
     RunTest('TestConfirmAndCompleteOrderWorkflow', procedure begin SalesTests.TestConfirmAndCompleteOrderWorkflow; end);
+    SalesTests.SetUp;
     RunTest('TestCompleteOrderInsufficientStockFails', procedure begin SalesTests.TestCompleteOrderInsufficientStockFails; end);
   finally
     SalesTests.Free;

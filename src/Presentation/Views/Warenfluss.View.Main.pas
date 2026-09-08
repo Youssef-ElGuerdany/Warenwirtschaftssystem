@@ -15,7 +15,9 @@ uses
   Warenfluss.Interfaces.Services,
   Warenfluss.ViewModel.Main,
   Warenfluss.ViewModel.Product,
-  Warenfluss.View.Products;
+  Warenfluss.ViewModel.Inventory,
+  Warenfluss.View.Products,
+  Warenfluss.View.Inventory;
 
 type
   TfrmMain = class(TForm)
@@ -57,15 +59,25 @@ type
     procedure btnNavAuditClick(Sender: TObject);
     procedure btnLanguageToggleClick(Sender: TObject);
   private
-    FViewModel:   TMainViewModel;
-    FProductVM:   TProductViewModel;
-    FProductSvc:  IProductService;
-    FCategorySvc: ICategoryService;
+    FViewModel:        TMainViewModel;
+    FProductVM:        TProductViewModel;
+    FInventoryVM:      TInventoryViewModel;
+    FProductSvc:       IProductService;
+    FCategorySvc:      ICategoryService;
+    FInventorySvc:     IInventoryService;
+    FStockTransferSvc: IStockTransferService;
+    FWarehouseSvc:     IWarehouseService;
     procedure UpdateLocalization;
     procedure OnViewModelChanged;
   public
     constructor CreateWithViewModel(AOwner: TComponent; AViewModel: TMainViewModel;
-      AProductSvc: IProductService; ACategorySvc: ICategoryService); reintroduce;
+      AProductSvc: IProductService; ACategorySvc: ICategoryService;
+      AInventorySvc: IInventoryService = nil; AStockTransferSvc: IStockTransferService = nil;
+      AWarehouseSvc: IWarehouseService = nil); reintroduce;
+    procedure InitServices(AViewModel: TMainViewModel;
+      AProductSvc: IProductService; ACategorySvc: ICategoryService;
+      AInventorySvc: IInventoryService; AStockTransferSvc: IStockTransferService;
+      AWarehouseSvc: IWarehouseService);
   end;
 
 var
@@ -76,14 +88,31 @@ implementation
 {$R *.dfm}
 
 constructor TfrmMain.CreateWithViewModel(AOwner: TComponent; AViewModel: TMainViewModel;
-  AProductSvc: IProductService; ACategorySvc: ICategoryService);
+  AProductSvc: IProductService; ACategorySvc: ICategoryService;
+  AInventorySvc: IInventoryService; AStockTransferSvc: IStockTransferService;
+  AWarehouseSvc: IWarehouseService);
 begin
   inherited Create(AOwner);
-  FViewModel    := AViewModel;
-  FProductSvc   := AProductSvc;
-  FCategorySvc  := ACategorySvc;
+  InitServices(AViewModel, AProductSvc, ACategorySvc, AInventorySvc, AStockTransferSvc, AWarehouseSvc);
+end;
+
+procedure TfrmMain.InitServices(AViewModel: TMainViewModel;
+  AProductSvc: IProductService; ACategorySvc: ICategoryService;
+  AInventorySvc: IInventoryService; AStockTransferSvc: IStockTransferService;
+  AWarehouseSvc: IWarehouseService);
+begin
+  FViewModel        := AViewModel;
+  FProductSvc       := AProductSvc;
+  FCategorySvc      := ACategorySvc;
+  FInventorySvc     := AInventorySvc;
+  FStockTransferSvc := AStockTransferSvc;
+  FWarehouseSvc     := AWarehouseSvc;
+
   if Assigned(FViewModel) then
+  begin
     FViewModel.OnChanged := OnViewModelChanged;
+    FViewModel.RefreshDashboard;
+  end;
 end;
 
 procedure TfrmMain.FormCreate(Sender: TObject);
@@ -151,11 +180,27 @@ begin
   finally
     ProductsDlg.Free;
   end;
+
+  if Assigned(FViewModel) then
+    FViewModel.RefreshDashboard;
 end;
 
 procedure TfrmMain.btnNavInventoryClick(Sender: TObject);
+var
+  InventoryDlg: TfrmInventory;
 begin
-  // Inventory warehouse view
+  if not Assigned(FInventoryVM) then
+    FInventoryVM := TInventoryViewModel.Create(FInventorySvc, FStockTransferSvc, FWarehouseSvc);
+
+  InventoryDlg := TfrmInventory.CreateWithViewModel(Self, FInventoryVM);
+  try
+    InventoryDlg.ShowModal;
+  finally
+    InventoryDlg.Free;
+  end;
+
+  if Assigned(FViewModel) then
+    FViewModel.RefreshDashboard;
 end;
 
 procedure TfrmMain.btnNavSalesOrdersClick(Sender: TObject);

@@ -7,7 +7,7 @@ unit Warenfluss.ViewModel.Inventory;
 interface
 
 uses
-  System.SysUtils,
+  System.SysUtils, System.StrUtils,
   Warenfluss.Types,
   Warenfluss.DTOs.Inventory,
   Warenfluss.DTOs.Product,
@@ -21,32 +21,58 @@ type
     FStockTransferService: IStockTransferService;
     FWarehouseService: IWarehouseService;
     FStockItems: TArray<TStockItemDTO>;
+    FFilteredStockItems: TArray<TStockItemDTO>;
     FWarehouses: TArray<TWarehouseDTO>;
     FMovements: TArray<TStockMovementDTO>;
     FSelectedWarehouseID: TEntityID;
+    FSearchQuery: string;
+    FSelectedStockItem: TStockItemDTO;
+    FHasSelectedStockItem: Boolean;
+    FCurrentUserID: TEntityID;
+
+    procedure ApplyFilter;
   public
-    constructor Create(AInventoryService: IInventoryService; ATransferService: IStockTransferService; AWarehouseService: IWarehouseService);
+    constructor Create(AInventoryService: IInventoryService; ATransferService: IStockTransferService;
+      AWarehouseService: IWarehouseService); reintroduce;
+
     procedure LoadStock;
     procedure LoadMovements(AProductID: TEntityID = 0);
-    function AdjustStock(AProductID, AWarehouseID: TEntityID; ADelta: Double; const AReason: string; AUserID: TEntityID): TOperationResult;
-    function TransferStock(AProductID, ASrcWH, ATgtWH: TEntityID; AQty: Double; const AReason: string; AUserID: TEntityID): TOperationResult;
+    procedure Search(const AQuery: string);
+    procedure FilterByWarehouse(AWHID: TEntityID);
 
-    property StockItems: TArray<TStockItemDTO> read FStockItems;
+    function AdjustStock(AProductID, AWarehouseID: TEntityID; ADelta: Double;
+      const AReason: string; AUserID: TEntityID): TOperationResult;
+    function TransferStock(AProductID, ASrcWH, ATgtWH: TEntityID; AQty: Double;
+      const AReason: string; AUserID: TEntityID): TOperationResult;
+
+    function GetTotalQuantity: Double;
+    function GetTotalValuation: Currency;
+    function GetTotalPositionCount: Integer;
+
+    property StockItems: TArray<TStockItemDTO> read FFilteredStockItems;
+    property AllStockItems: TArray<TStockItemDTO> read FStockItems;
     property Warehouses: TArray<TWarehouseDTO> read FWarehouses;
     property Movements: TArray<TStockMovementDTO> read FMovements;
     property SelectedWarehouseID: TEntityID read FSelectedWarehouseID write FSelectedWarehouseID;
+    property SearchQuery: string read FSearchQuery;
+    property SelectedStockItem: TStockItemDTO read FSelectedStockItem write FSelectedStockItem;
+    property HasSelectedStockItem: Boolean read FHasSelectedStockItem write FHasSelectedStockItem;
+    property CurrentUserID: TEntityID read FCurrentUserID write FCurrentUserID;
   end;
 
 implementation
 
-constructor TInventoryViewModel.Create(AInventoryService: IInventoryService; ATransferService: IStockTransferService;
-  AWarehouseService: IWarehouseService);
+constructor TInventoryViewModel.Create(AInventoryService: IInventoryService;
+  ATransferService: IStockTransferService; AWarehouseService: IWarehouseService);
 begin
   inherited Create;
   FInventoryService := AInventoryService;
   FStockTransferService := ATransferService;
   FWarehouseService := AWarehouseService;
   FSelectedWarehouseID := 0;
+  FSearchQuery := '';
+  FHasSelectedStockItem := False;
+  FCurrentUserID := 1;
 end;
 
 procedure TInventoryViewModel.LoadStock;
@@ -62,10 +88,67 @@ begin
         FStockItems := FInventoryService.GetStockByWarehouse(FSelectedWarehouseID)
       else
         FStockItems := FInventoryService.GetAllStockItems;
-    end;
-    NotifyChanged;
+    end
+    else
+      SetLength(FStockItems, 0);
+
+    ApplyFilter;
   finally
     IsBusy := False;
+  end;
+end;
+
+procedure TInventoryViewModel.ApplyFilter;
+var
+  I: Integer;
+  Matches: TArray<TStockItemDTO>;
+  Count: Integer;
+  UpperQuery: string;
+  Item: TStockItemDTO;
+  MatchesQuery: Boolean;
+begin
+  UpperQuery := UpperCase(Trim(FSearchQuery));
+
+  if UpperQuery = '' then
+  begin
+    FFilteredStockItems := Copy(FStockItems);
+  end
+  else
+  begin
+    SetLength(Matches, Length(FStockItems));
+    Count := 0;
+    for I := 0 to High(FStockItems) do
+    begin
+      Item := FStockItems[I];
+      MatchesQuery := (Pos(UpperQuery, UpperCase(Item.ProductSKU)) > 0) or
+                      (Pos(UpperQuery, UpperCase(Item.ProductName)) > 0) or
+                      (Pos(UpperQuery, UpperCase(Item.WarehouseName)) > 0) or
+                      (Pos(UpperQuery, UpperCase(Item.WarehouseCode)) > 0);
+      if MatchesQuery then
+      begin
+        Matches[Count] := Item;
+        Inc(Count);
+      end;
+    end;
+    SetLength(Matches, Count);
+    FFilteredStockItems := Matches;
+  end;
+
+  NotifyChanged;
+end;
+
+procedure TInventoryViewModel.Search(const AQuery: string);
+begin
+  FSearchQuery := AQuery;
+  ApplyFilter;
+end;
+
+procedure TInventoryViewModel.FilterByWarehouse(AWHID: TEntityID);
+begin
+  if FSelectedWarehouseID <> AWHID then
+  begin
+    FSelectedWarehouseID := AWHID;
+    LoadStock;
   end;
 end;
 
@@ -78,8 +161,8 @@ begin
   end;
 end;
 
-function TInventoryViewModel.AdjustStock(AProductID, AWarehouseID: TEntityID; ADelta: Double; const AReason: string;
-  AUserID: TEntityID): TOperationResult;
+function TInventoryViewModel.AdjustStock(AProductID, AWarehouseID: TEntityID;
+  ADelta: Double; const AReason: string; AUserID: TEntityID): TOperationResult;
 var
   DTO: TStockAdjustmentDTO;
 begin
@@ -88,13 +171,24 @@ begin
   DTO.AdjustmentQuantity := ADelta;
   DTO.Reason := AReason;
 
-  Result := FInventoryService.AdjustStock(DTO, AUserID);
-  if Result.Success then
-    LoadStock;
+  if Assigned(FInventoryService) then
+  begin
+    Result := FInventoryService.AdjustStock(DTO, AUserID);
+    if Result.Success then
+    begin
+      LoadStock;
+      LoadMovements(AProductID);
+    end;
+  end
+  else
+  begin
+    Result.Success := False;
+    Result.Message := 'Inventory service not available.';
+  end;
 end;
 
-function TInventoryViewModel.TransferStock(AProductID, ASrcWH, ATgtWH: TEntityID; AQty: Double; const AReason: string;
-  AUserID: TEntityID): TOperationResult;
+function TInventoryViewModel.TransferStock(AProductID, ASrcWH, ATgtWH: TEntityID;
+  AQty: Double; const AReason: string; AUserID: TEntityID): TOperationResult;
 var
   DTO: TStockTransferDTO;
 begin
@@ -104,9 +198,43 @@ begin
   DTO.Quantity := AQty;
   DTO.Reason := AReason;
 
-  Result := FStockTransferService.TransferStock(DTO, AUserID);
-  if Result.Success then
-    LoadStock;
+  if Assigned(FStockTransferService) then
+  begin
+    Result := FStockTransferService.TransferStock(DTO, AUserID);
+    if Result.Success then
+    begin
+      LoadStock;
+      LoadMovements(AProductID);
+    end;
+  end
+  else
+  begin
+    Result.Success := False;
+    Result.Message := 'Stock transfer service not available.';
+  end;
+end;
+
+function TInventoryViewModel.GetTotalQuantity: Double;
+var
+  I: Integer;
+begin
+  Result := 0;
+  for I := 0 to High(FFilteredStockItems) do
+    Result := Result + FFilteredStockItems[I].Quantity;
+end;
+
+function TInventoryViewModel.GetTotalValuation: Currency;
+var
+  I: Integer;
+begin
+  Result := 0;
+  for I := 0 to High(FFilteredStockItems) do
+    Result := Result + FFilteredStockItems[I].TotalValue;
+end;
+
+function TInventoryViewModel.GetTotalPositionCount: Integer;
+begin
+  Result := Length(FFilteredStockItems);
 end;
 
 end.

@@ -56,7 +56,8 @@ uses
   Warenfluss.ViewModel.SalesOrder in 'src\Presentation\ViewModels\Warenfluss.ViewModel.SalesOrder.pas',
   Warenfluss.View.Login in 'src\Presentation\Views\Warenfluss.View.Login.pas' {frmLogin},
   Warenfluss.View.Main in 'src\Presentation\Views\Warenfluss.View.Main.pas' {frmMain},
-  Warenfluss.View.Products in 'src\Presentation\Views\Warenfluss.View.Products.pas' {frmProducts};
+  Warenfluss.View.Products in 'src\Presentation\Views\Warenfluss.View.Products.pas' {frmProducts},
+  Warenfluss.View.Inventory in 'src\Presentation\Views\Warenfluss.View.Inventory.pas' {frmInventory};
 
 {$R *.res}
 
@@ -139,9 +140,7 @@ begin
   // 4. Initialize ViewModel and Main Form
   MainVM := TMainViewModel.Create(ReportSvc, AuthSvc);
   Application.CreateForm(TfrmMain, frmMain);
-  Application.CreateForm(TfrmProducts, frmProducts);
-  //frmMain := TfrmMain.CreateWithViewModel(Application, MainVM);
-  Application.CreateForm(TfrmLogin, frmLogin);
+  frmMain.InitServices(MainVM, ProdSvc, CatSvc, InvSvc, XferSvc, WHSvc);
   Application.Run;
 end.
 

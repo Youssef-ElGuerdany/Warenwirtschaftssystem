@@ -3,7 +3,7 @@
 # ==========================================
 
 # Compiled Delphi units
-.dcu
+*.dcu
 *.dcu32
 *.dcu64
 *.dcuil
@@ -99,12 +99,3 @@ settings.local.json
 # Keep source code and project files tracked
 # ==========================================
 
-# Do not ignore:
-# *.pas
-# *.dfm
-# *.dpr
-# *.dproj
-# *.groupproj
-# *.inc
-# *.res
-# libs/mORMot2/src/
