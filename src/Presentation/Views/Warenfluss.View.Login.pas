@@ -79,15 +79,30 @@ begin
   Req.Password := Trim(edtPassword.Text);
   Req.ClientIP := '127.0.0.1';
 
-  FAuthenticatedUser := FAuthService.Login(Req);
-  if FAuthenticatedUser.Success then
+  if (Req.Username = '') or (Req.Password = '') then
   begin
-    ModalResult := mrOk;
-  end
-  else
-  begin
-    lblError.Caption := FAuthenticatedUser.ErrorMessage;
+    lblError.Caption := 'Benutzername und Passwort sind erforderlich.';
     lblError.Font.Color := clRed;
+    Exit;
+  end;
+
+  try
+    FAuthenticatedUser := FAuthService.Login(Req);
+    if FAuthenticatedUser.Success then
+    begin
+      ModalResult := mrOk;
+    end
+    else
+    begin
+      lblError.Caption := FAuthenticatedUser.ErrorMessage;
+      lblError.Font.Color := clRed;
+    end;
+  except
+    on E: Exception do
+    begin
+      lblError.Caption := E.Message;
+      lblError.Font.Color := clRed;
+    end;
   end;
 end;
 

@@ -90,6 +90,7 @@ var
 
   MainVM: TMainViewModel;
   LoginDlg: TfrmLogin;
+  AuthResp: TLoginResponseDTO;
 
 begin
   Application.Initialize;
@@ -133,12 +134,15 @@ begin
     begin
       Exit;
     end;
+    AuthResp := LoginDlg.AuthenticatedUser;
   finally
     LoginDlg.Free;
   end;
 
   // 4. Initialize ViewModel and Main Form
   MainVM := TMainViewModel.Create(ReportSvc, AuthSvc);
+  if AuthResp.Token <> '' then
+    MainVM.SetUser(AuthSvc.GetCurrentUser(AuthResp.Token));
   Application.CreateForm(TfrmMain, frmMain);
   frmMain.InitServices(MainVM, ProdSvc, CatSvc, InvSvc, XferSvc, WHSvc);
   Application.Run;

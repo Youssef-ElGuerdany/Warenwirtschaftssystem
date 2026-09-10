@@ -98,6 +98,7 @@ begin
     RunTest('TestUserNotFound', procedure begin AuthTests.TestUserNotFound; end);
     RunTest('TestInactiveUser', procedure begin AuthTests.TestInactiveUser; end);
     RunTest('TestValidateToken', procedure begin AuthTests.TestValidateToken; end);
+    RunTest('TestSeededDefaultUsers', procedure begin AuthTests.TestSeededDefaultUsers; end);
   finally
     AuthTests.Free;
   end;

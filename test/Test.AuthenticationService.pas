@@ -18,6 +18,7 @@ uses
   Warenfluss.Services.Authentication,
   Warenfluss.Services.Audit,
   Warenfluss.Repositories.Mock,
+  Warenfluss.ORM.DataSeeder,
   Warenfluss.TestRunner;
 
 type
@@ -34,6 +35,7 @@ type
     procedure TestUserNotFound;
     procedure TestInactiveUser;
     procedure TestValidateToken;
+    procedure TestSeededDefaultUsers;
   end;
 
 implementation
@@ -144,6 +146,31 @@ begin
 
   FAuthService.Logout(Resp.Token);
   AssertFalse(FAuthService.ValidateToken(Resp.Token), 'Token must be invalidated after logout');
+end;
+
+procedure TTestAuthenticationService.TestSeededDefaultUsers;
+var
+  Req: TLoginRequestDTO;
+  Resp: TLoginResponseDTO;
+begin
+  TDataSeeder.SeedDefaultData(FUserRepo, nil, nil, nil, nil, nil, nil);
+
+  // 1. Test seeded admin credentials
+  Req.Username := 'admin';
+  Req.Password := 'admin123';
+  Req.ClientIP := '127.0.0.1';
+  Resp := FAuthService.Login(Req);
+  AssertTrue(Resp.Success, 'Login must succeed for seeded admin');
+  AssertEquals('admin', Resp.Username, 'Username must be admin');
+  AssertEquals('System Administrator', Resp.FullName, 'FullName must match seeded data');
+
+  // 2. Test seeded clerk credentials
+  Req.Username := 'clerk';
+  Req.Password := 'user123';
+  Req.ClientIP := '127.0.0.1';
+  Resp := FAuthService.Login(Req);
+  AssertTrue(Resp.Success, 'Login must succeed for seeded clerk');
+  AssertEquals('clerk', Resp.Username, 'Username must be clerk');
 end;
 
 initialization
