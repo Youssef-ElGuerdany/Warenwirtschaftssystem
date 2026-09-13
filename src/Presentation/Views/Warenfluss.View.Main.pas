@@ -16,8 +16,10 @@ uses
   Warenfluss.ViewModel.Main,
   Warenfluss.ViewModel.Product,
   Warenfluss.ViewModel.Inventory,
+  Warenfluss.ViewModel.SalesOrder,
   Warenfluss.View.Products,
-  Warenfluss.View.Inventory;
+  Warenfluss.View.Inventory,
+  Warenfluss.View.SalesOrders;
 
 type
   TfrmMain = class(TForm)
@@ -62,22 +64,39 @@ type
     FViewModel:        TMainViewModel;
     FProductVM:        TProductViewModel;
     FInventoryVM:      TInventoryViewModel;
+    FSalesOrderVM:     TSalesOrderViewModel;  { Lazily created on first navigation }
     FProductSvc:       IProductService;
     FCategorySvc:      ICategoryService;
     FInventorySvc:     IInventoryService;
     FStockTransferSvc: IStockTransferService;
     FWarehouseSvc:     IWarehouseService;
+    FSalesSvc:         ISalesOrderService;   { Sales-order service (CRUD + lifecycle) }
+    FCustSvc:          ICustomerService;     { Customer master for orders dropdown }
     procedure UpdateLocalization;
     procedure OnViewModelChanged;
   public
+    /// <summary>
+    ///   Primary constructor – injects the main ViewModel and all service
+    ///   dependencies needed by the child views.
+    /// </summary>
     constructor CreateWithViewModel(AOwner: TComponent; AViewModel: TMainViewModel;
       AProductSvc: IProductService; ACategorySvc: ICategoryService;
       AInventorySvc: IInventoryService = nil; AStockTransferSvc: IStockTransferService = nil;
-      AWarehouseSvc: IWarehouseService = nil); reintroduce;
+      AWarehouseSvc: IWarehouseService = nil;
+      ASalesSvc: ISalesOrderService = nil;
+      ACustSvc:  ICustomerService = nil); reintroduce;
+
+    /// <summary>
+    ///   Binds all service references after the form has been created via
+    ///   Application.CreateForm (which bypasses the constructor).
+    ///   Called from Warenfluss.dpr immediately after form creation.
+    /// </summary>
     procedure InitServices(AViewModel: TMainViewModel;
       AProductSvc: IProductService; ACategorySvc: ICategoryService;
       AInventorySvc: IInventoryService; AStockTransferSvc: IStockTransferService;
-      AWarehouseSvc: IWarehouseService);
+      AWarehouseSvc: IWarehouseService;
+      ASalesSvc: ISalesOrderService = nil;
+      ACustSvc:  ICustomerService = nil);
   end;
 
 var
@@ -87,19 +106,37 @@ implementation
 
 {$R *.dfm}
 
+{ ============================================================
+  Constructor
+  Purpose: Wire services through to InitServices so the form
+           works identically whether constructed directly or via
+           Application.CreateForm + InitServices.
+  ============================================================ }
+
 constructor TfrmMain.CreateWithViewModel(AOwner: TComponent; AViewModel: TMainViewModel;
   AProductSvc: IProductService; ACategorySvc: ICategoryService;
   AInventorySvc: IInventoryService; AStockTransferSvc: IStockTransferService;
-  AWarehouseSvc: IWarehouseService);
+  AWarehouseSvc: IWarehouseService;
+  ASalesSvc: ISalesOrderService; ACustSvc: ICustomerService);
 begin
   inherited Create(AOwner);
-  InitServices(AViewModel, AProductSvc, ACategorySvc, AInventorySvc, AStockTransferSvc, AWarehouseSvc);
+  InitServices(AViewModel, AProductSvc, ACategorySvc, AInventorySvc,
+               AStockTransferSvc, AWarehouseSvc, ASalesSvc, ACustSvc);
 end;
+
+{ ============================================================
+  InitServices
+  Purpose: Store all injected service references and subscribe
+           the form to the ViewModel's OnChanged notification.
+           Child ViewModels are created lazily on first navigation
+           to keep startup time low.
+  ============================================================ }
 
 procedure TfrmMain.InitServices(AViewModel: TMainViewModel;
   AProductSvc: IProductService; ACategorySvc: ICategoryService;
   AInventorySvc: IInventoryService; AStockTransferSvc: IStockTransferService;
-  AWarehouseSvc: IWarehouseService);
+  AWarehouseSvc: IWarehouseService;
+  ASalesSvc: ISalesOrderService; ACustSvc: ICustomerService);
 begin
   FViewModel        := AViewModel;
   FProductSvc       := AProductSvc;
@@ -107,6 +144,8 @@ begin
   FInventorySvc     := AInventorySvc;
   FStockTransferSvc := AStockTransferSvc;
   FWarehouseSvc     := AWarehouseSvc;
+  FSalesSvc         := ASalesSvc;  { Sales-order service for the orders view }
+  FCustSvc          := ACustSvc;   { Customer service shared with orders view }
 
   if Assigned(FViewModel) then
   begin
@@ -203,9 +242,38 @@ begin
     FViewModel.RefreshDashboard;
 end;
 
+{ ============================================================
+  btnNavSalesOrdersClick
+  Purpose: Open the Sales Orders view as a modal dialog.
+           The ViewModel is created lazily the first time the
+           user navigates here and reused on subsequent visits
+           so cached master data (customers, products) is kept.
+  ============================================================ }
+
 procedure TfrmMain.btnNavSalesOrdersClick(Sender: TObject);
+var
+  SalesDlg: TfrmSalesOrders;
 begin
-  // Sales orders workflow view
+  { Create the SalesOrder ViewModel once and reuse it across
+    repeated navigations to the orders screen }
+  if not Assigned(FSalesOrderVM) then
+    FSalesOrderVM := TSalesOrderViewModel.Create(
+      FSalesSvc,      { ISalesOrderService – CRUD + lifecycle operations }
+      FCustSvc,       { ICustomerService   – customer master dropdown }
+      FWarehouseSvc,  { IWarehouseService  – dispatch warehouse dropdown }
+      FProductSvc);   { IProductService    – article picker in order lines }
+
+  SalesDlg := TfrmSalesOrders.CreateWithViewModel(Self, FSalesOrderVM);
+  try
+    SalesDlg.ShowModal;
+  finally
+    SalesDlg.Free;
+  end;
+
+  { Refresh the dashboard so the "Offene Verkaufsauftraege" KPI
+    reflects any changes made in the orders view }
+  if Assigned(FViewModel) then
+    FViewModel.RefreshDashboard;
 end;
 
 procedure TfrmMain.btnNavPurchaseOrdersClick(Sender: TObject);

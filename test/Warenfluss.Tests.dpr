@@ -51,7 +51,8 @@ uses
   Test.InventoryService in 'Test.InventoryService.pas',
   Test.InventoryViewModel in 'Test.InventoryViewModel.pas',
   Test.StockTransferService in 'Test.StockTransferService.pas',
-  Test.SalesOrderService in 'Test.SalesOrderService.pas';
+  Test.SalesOrderService in 'Test.SalesOrderService.pas',
+  Warenfluss.ORM.DataSeeder in '..\src\Infrastructure\Database\Warenfluss.ORM.DataSeeder.pas';
 
 procedure RunSuite;
 var

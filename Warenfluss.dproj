@@ -181,6 +181,13 @@
             <Form>frmMain</Form>
             <FormType>dfm</FormType>
         </DCCReference>
+        <DCCReference Include="src\Presentation\Views\Warenfluss.View.Products.pas">
+            <Form>frmProducts</Form>
+            <FormType>dfm</FormType>
+        </DCCReference>
+        <DCCReference Include="src\Presentation\Views\Warenfluss.View.Inventory.pas">
+            <Form>frmInventory</Form>
+        </DCCReference>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>

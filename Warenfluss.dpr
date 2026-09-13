@@ -57,7 +57,8 @@ uses
   Warenfluss.View.Login in 'src\Presentation\Views\Warenfluss.View.Login.pas' {frmLogin},
   Warenfluss.View.Main in 'src\Presentation\Views\Warenfluss.View.Main.pas' {frmMain},
   Warenfluss.View.Products in 'src\Presentation\Views\Warenfluss.View.Products.pas' {frmProducts},
-  Warenfluss.View.Inventory in 'src\Presentation\Views\Warenfluss.View.Inventory.pas' {frmInventory};
+  Warenfluss.View.Inventory in 'src\Presentation\Views\Warenfluss.View.Inventory.pas' {frmInventory},
+  Warenfluss.View.SalesOrders in 'src\Presentation\Views\Warenfluss.View.SalesOrders.pas' {frmSalesOrders};
 
 {$R *.res}
 
@@ -144,7 +145,11 @@ begin
   if AuthResp.Token <> '' then
     MainVM.SetUser(AuthSvc.GetCurrentUser(AuthResp.Token));
   Application.CreateForm(TfrmMain, frmMain);
-  frmMain.InitServices(MainVM, ProdSvc, CatSvc, InvSvc, XferSvc, WHSvc);
+
+  // Wire all services into the main form, including the newly added
+  // SalesSvc and CustSvc which power the Sales Orders view.
+  frmMain.InitServices(MainVM, ProdSvc, CatSvc, InvSvc, XferSvc, WHSvc,
+                       SalesSvc, CustSvc);
   Application.Run;
 end.
 
